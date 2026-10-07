@@ -1,0 +1,4 @@
+    <footer class="pie">Gesti&oacute;n de personal &middot; UNFV &middot; <%= java.time.Year.now() %></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <!-- Los formularios se leen siempre en UTF-8 (tildes, ñ) -->
+    <request-character-encoding>UTF-8</request-character-encoding>
+    <response-character-encoding>UTF-8</response-character-encoding>
+
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <!-- Sesión: 30 minutos de inactividad, cookie inaccesible desde JavaScript y sin ID en la URL -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+        </cookie-config>
+        <tracking-mode>COOKIE</tracking-mode>
+    </session-config>
+
+    <!-- Páginas de error amigables en lugar de la pantalla técnica de Tomcat.
+         Las vistas viven en WEB-INF: no se pueden abrir escribiendo su dirección en el navegador. -->
+    <error-page>
+        <error-code>400</error-code>
+        <location>/WEB-INF/vistas/error.jsp</location>
+    </error-page>
+    <error-page>
+        <error-code>403</error-code>
+        <location>/WEB-INF/vistas/error.jsp</location>
+    </error-page>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/WEB-INF/vistas/error.jsp</location>
+    </error-page>
+    <error-page>
+        <exception-type>java.lang.Throwable</exception-type>
+        <location>/WEB-INF/vistas/error.jsp</location>
+    </error-page>
+</web-app>

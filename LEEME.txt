@@ -1,0 +1,108 @@
+GESTPERSONAL - SISTEMA DE CONTROL DE INCIDENCIAS (versión 2)
+=============================================================
+
+QUÉ NECESITAS (dos cosas corriendo a la vez)
+--------------------------------------------
+  1) XAMPP  -> solo para la base de datos MySQL (phpMyAdmin).
+  2) Apache Tomcat 10.1 o superior -> ejecuta la aplicación Java.
+     Debe ser Tomcat 10+ porque el proyecto usa "jakarta.servlet".
+     (Con Tomcat 9 o menor NO funciona.)
+  JDK 17 o superior.
+
+
+PASOS PARA DEJARLO FUNCIONANDO
+------------------------------
+1. Base de datos (XAMPP abierto y MySQL en verde):
+   - Abre http://localhost/phpmyadmin -> pestaña "SQL" (o "Importar").
+   - Ejecuta el archivo:  incidencias_db.sql
+     (Crea la base "incidencias_db" con sus tablas, el usuario admin y datos de ejemplo.
+      OJO: borra y recrea las tablas.)
+
+   Si YA tenías la base de la versión 1 con datos que quieres conservar,
+   NO uses ese archivo: ejecuta migracion_v2.sql (una sola vez).
+
+2. Tomcat 10.1 registrado en NetBeans (Tools > Servers > Add Server).
+
+3. File > Open Project -> carpeta PROYECTOINCIDENCIAS-WEB.
+   Click derecho > Properties > Run y confirma el servidor Tomcat 10+.
+
+4. Click derecho sobre el proyecto > Clean and Build, y luego Run.
+   Abre: http://localhost:8080/PROYECTOINCIDENCIAS-WEB/
+   Verás primero la ventana inicial para elegir el tipo de personal.
+
+5. Primer ingreso (elige "Administrador de personal" en la ventana inicial):
+      Usuario:     admin
+      Contraseña:  Admin2026*
+   El sistema te obliga a cambiar esa contraseña antes de continuar.
+
+
+CONEXIÓN A LA BASE DE DATOS
+---------------------------
+Por defecto usa los datos típicos de XAMPP: usuario root, sin contraseña, puerto 3306.
+Si tu XAMPP es distinto, no hace falta editar el código: define las variables de entorno
+(o propiedades de la JVM) INCIDENCIAS_DB_URL, INCIDENCIAS_DB_USER e INCIDENCIAS_DB_PASSWORD.
+Si prefieres editar, está en src/java/datos/Conexion.java.
+
+
+QUÉ INCLUYE LA VERSIÓN 2
+------------------------
+Pantallas:
+  - Ventana inicial (elegir tipo de personal: Administrador de personal o Personal de consulta),
+    Login de cada tipo (rechaza cuentas que no corresponden al tipo elegido), Inicio con resumen, Empleados, Incidencias, Reportes,
+    Usuarios (solo admin) y Mi cuenta (cambiar contraseña).
+  - Incidencias: búsqueda por empleado o descripción, filtros por estado, tipo y fechas,
+    paginación (10 por página), formulario en página aparte, historial con el usuario
+    que hizo cada cambio y exportación a CSV respetando los filtros.
+  - Reportes: incidencias por tipo (gráfico de barras), empleados con más incidencias
+    y botón "Imprimir / guardar PDF" (usa la impresión del navegador, sin librerías).
+
+Seguridad:
+  - Inicio de sesión con sesión HTTP (30 min de inactividad). Todo el sistema queda
+    protegido por un filtro (seguridad/FiltroSeguridad.java); sin sesión solo se ve el login.
+  - Contraseñas guardadas con PBKDF2-HMAC-SHA256 + sal aleatoria (600 000 iteraciones),
+    incluido en Java: no necesita librerías externas. Nunca se guarda la contraseña real.
+  - Roles: ADMIN (todo) y CONSULTA (solo ver y descargar). Se valida en el servidor,
+    no solo ocultando botones.
+  - Protección CSRF: todos los formularios POST llevan un token que el filtro verifica.
+  - Eliminaciones solo por POST (antes eran un enlace GET que cualquiera podía activar).
+  - Bloqueo temporal tras 5 intentos fallidos (5 minutos) por usuario + IP.
+  - Mismo mensaje y mismo tiempo de respuesta si el usuario no existe o la contraseña
+    es incorrecta (no revela qué usuarios existen).
+  - Al iniciar sesión se cambia el identificador de sesión (contra "fijación de sesión").
+  - Contraseñas temporales: las creadas o restablecidas por un admin deben cambiarse
+    al primer ingreso.
+  - Salida HTML siempre escapada (contra XSS), consultas siempre con parámetros (contra
+    inyección SQL), CSV protegido contra inyección de fórmulas de Excel.
+  - Las páginas JSP están en WEB-INF: solo se pueden abrir a través de los servlets.
+
+Calidad del código:
+  - Cambiar el estado de una incidencia y anotarlo en el historial ocurre en una sola
+    transacción (o se guardan las dos cosas o ninguna).
+  - Los errores de base de datos ya no se ocultan: se registran en el log y se muestra
+    una página de error clara.
+  - El código repetido se unificó (un solo mapeo de incidencias, cabecera y pie de
+    página compartidos en WEB-INF/jspf).
+  - La fecha de ingreso del empleado ahora se puede indicar (antes siempre era "hoy").
+
+
+ESTRUCTURA
+----------
+  src/java/modelo       Clases de datos (Empleado, Incidencia, Usuario, ...)
+  src/java/datos        Acceso a MySQL (los DAO) y la conexión
+  src/java/controlador  Servlets (Login, Inicio, Empleado, Incidencia, Reporte, Usuario,
+                        Cuenta, Exportar) y utilidades
+  src/java/seguridad    Contraseñas, filtro de seguridad, CSRF y límite de intentos
+  web/WEB-INF/vistas    Páginas JSP
+  web/WEB-INF/jspf      Cabecera y pie comunes
+  web/css/estilos.css   Estilos
+
+
+LIMITACIONES CONOCIDAS (para mencionar en el informe)
+-----------------------------------------------------
+  - Si un admin desactiva a un usuario que ya tiene sesión abierta, esa sesión sigue
+    válida hasta que caduque (30 min) o cierre sesión; el bloqueo aplica desde su
+    próximo inicio de sesión.
+  - El bloqueo por intentos fallidos vive en memoria: se reinicia al reiniciar Tomcat.
+  - Cada consulta abre una conexión nueva (sin pool de conexiones). Suficiente para
+    este proyecto; en producción se usaría un pool (por ejemplo, el de Tomcat).
+  - Los tipos de incidencia se administran directamente en la base de datos.

@@ -1,0 +1,57 @@
+<%@ page import="modelo.Usuario, modelo.Rol, seguridad.Seguridad, controlador.Vista" %>
+<%--
+    Cabecera común de todas las páginas internas: <head>, encabezado con menú, usuario y avisos.
+    La página que la incluye debe definir ANTES las variables:  String activa;  String tituloPagina;
+    Deja disponibles:  ctx (ruta base de la aplicación)  y  esAdmin (true si el usuario es administrador).
+--%>
+<%
+    String ctx = request.getContextPath();
+    Usuario usuarioSesion = Seguridad.usuarioActual(request);
+    boolean esAdmin = usuarioSesion != null && usuarioSesion.getRol() == Rol.ADMIN;
+    String avisoOk = request.getParameter("ok");
+    String avisoError = (String) request.getAttribute("error");
+    if (avisoError == null) avisoError = request.getParameter("error");
+%>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= Vista.escapar(tituloPagina) %> - GestPersonal</title>
+    <link rel="stylesheet" href="<%= ctx %>/css/estilos.css">
+</head>
+<body>
+<div class="contenedor">
+    <header class="encabezado">
+        <div class="encabezado-fila">
+            <h1 class="marca">GestPersonal &middot; Control de incidencias</h1>
+            <nav class="menu" aria-label="Men&uacute; principal">
+                <a href="<%= ctx %>/InicioServlet" class="<%= "inicio".equals(activa) ? "activo" : "" %>">Inicio</a>
+                <a href="<%= ctx %>/EmpleadoServlet" class="<%= "empleados".equals(activa) ? "activo" : "" %>">Empleados</a>
+                <a href="<%= ctx %>/IncidenciaServlet" class="<%= "incidencias".equals(activa) ? "activo" : "" %>">Incidencias</a>
+                <a href="<%= ctx %>/ReporteServlet" class="<%= "reportes".equals(activa) ? "activo" : "" %>">Reportes</a>
+                <% if (esAdmin) { %>
+                <a href="<%= ctx %>/UsuarioServlet" class="<%= "usuarios".equals(activa) ? "activo" : "" %>">Usuarios</a>
+                <% } %>
+            </nav>
+        </div>
+        <div class="encabezado-fila usuario-barra">
+            <a class="usuario" href="<%= ctx %>/CuentaServlet" title="Mi cuenta">
+                <%= Vista.icono("usuario") %>
+                <span><%= Vista.escapar(usuarioSesion == null ? "" : usuarioSesion.getNombreCompleto()) %>
+                <span class="rol-etiqueta">(<%= usuarioSesion == null ? "" : usuarioSesion.getRol().getEtiqueta() %>)</span></span>
+            </a>
+            <form class="form-inline" method="post" action="<%= ctx %>/LoginServlet">
+                <%= Seguridad.campoCsrf(request) %>
+                <input type="hidden" name="accion" value="salir">
+                <button type="submit" class="link-boton">Cerrar sesi&oacute;n</button>
+            </form>
+        </div>
+    </header>
+
+    <% if (avisoOk != null && !avisoOk.isEmpty()) { %>
+    <div class="aviso aviso-ok" role="status"><%= Vista.escapar(avisoOk) %></div>
+    <% } %>
+    <% if (avisoError != null && !avisoError.isEmpty()) { %>
+    <div class="aviso aviso-error" role="alert"><%= Vista.icono("alerta") %><span><%= Vista.escapar(avisoError) %></span></div>
+    <% } %>
